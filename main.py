@@ -1,6 +1,7 @@
 # Max Markov 01.24.2023
 
 from argparse import ArgumentParser
+import logging
 from dataclasses import dataclass
 
 
@@ -20,9 +21,14 @@ class MessageWriter:
     """Logger with capability of console message display"""
     # TODO class should have special functions: 'write' & 'error' with message as a parameter
 
-    def __init__(self, verbose: bool):
+    FORMAT = "[%(asctime)s] %(levelname)s %(message)s"
+    LEVEL = logging.INFO
+    ENCODING = 'utf-8'
+
+    def __init__(self, logging_file: str, verbose: bool):
         self.verbose = verbose
-        # TODO here logger must be configured for writing messages which follow correct template
+        logging.basicConfig(filename=logging_file, format=MessageWriter.FORMAT,
+                            level=MessageWriter.LEVEL, encoding=MessageWriter.ENCODING)
 
 
 @dataclass
