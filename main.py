@@ -12,6 +12,9 @@ import hashlib
 PROGRAM_NAME = 'Directory Profiler'  # TODO here script name is required
 PROGRAM_DESCRIPTION = ''  # TODO write appropriate program description
 
+SCRIPT_START_MESSAGE = f'{PROGRAM_NAME} has started operating'
+SCRIPT_FINAL_MESSAGE = f'{PROGRAM_NAME} has finished operating'
+
 
 class ConsoleArgumentParser(ArgumentParser):
     """Console arguments handler based on argparse.ArgumentParser"""
@@ -36,7 +39,7 @@ class ConsoleArgumentParser(ArgumentParser):
 
 class MessageWriter:
     """Logger with capability of console message display"""
-    # TODO class should have special functions: 'write' & 'error' with message as a parameter
+    # TODO combine two sending methods
 
     FORMAT = "[%(asctime)s] %(levelname)s %(message)s"
     LEVEL = logging.INFO
@@ -46,6 +49,19 @@ class MessageWriter:
         self.verbose = verbose
         logging.basicConfig(filename=logging_file, format=MessageWriter.FORMAT,
                             level=MessageWriter.LEVEL, encoding=MessageWriter.ENCODING)
+
+    def send_message(self, message: str):
+        """Log message & display it if verbose is enabled
+        """
+        logging.info(message)
+        if self.verbose:
+            print(message)
+
+    def send_error(self, message: str):
+        """Log error message & display appropriate explanation"""
+        logging.error(message)
+        if self.verbose:
+            print(message)
 
 
 @dataclass
@@ -99,7 +115,9 @@ def directory_data_collector(directory_path: str, parent: Directory = None) -> F
 def main():
     """Doin' Stuff..."""
     arguments, not_parsed = ConsoleArgumentParser().parse_known_args()
-    # TODO on next usage translate into a dictionary vars(arguments)
+    writer = MessageWriter(arguments.log, arguments.verbose)
+    writer.send_message(SCRIPT_START_MESSAGE)
+    writer.send_message(SCRIPT_FINAL_MESSAGE)
 
 
 if __name__ == '__main__':
