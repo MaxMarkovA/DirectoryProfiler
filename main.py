@@ -12,17 +12,22 @@ PROGRAM_DESCRIPTION = ''  # TODO write appropriate program description
 class ConsoleArgumentParser(ArgumentParser):
     """Console arguments handler based on argparse.ArgumentParser"""
 
-    DIRECTORY_ARGUMENT = ('-d', '--directory')
-    DATABASE_ARGUMENT = ('-b', '--database')
-    VERBOSE_ARGUMENT = ('-v', '--verbose')
-    LOGGING_ARGUMENT = ('-l', '--log')
+    DIRECTORY_POSITIONAL = ('-d', '--directory')
+    DIRECTORY_KEYWORD = {'required': True, 'help': 'path to the directory for inspection', 'metavar': 'DIRECTORY_PATH'}
+    DATABASE_POSITIONAL = ('-b', '--database')
+    DATABASE_KEYWORD = {'required': True, 'help': 'path to the database for gathered information',
+                        'metavar': 'DATABASE_FILEPATH'}
+    VERBOSE_POSITIONAL = ('-v', '--verbose')
+    VERBOSE_KEYWORD = {'action': 'store_true', 'help': 'let process messages to appear in console'}
+    LOGGING_POSITIONAL = ('-l', '--log')
+    LOGGING_KEYWORD = {'required': True, 'help': 'path to the logging file for writing', 'metavar': 'LOGGING_FILEPATH'}
 
     def __init__(self):
         super().__init__(prog=PROGRAM_NAME, description=PROGRAM_DESCRIPTION)
-        self.add_argument(*ConsoleArgumentParser.DIRECTORY_ARGUMENT)
-        self.add_argument(*ConsoleArgumentParser.DATABASE_ARGUMENT)
-        self.add_argument(*ConsoleArgumentParser.VERBOSE_ARGUMENT, action='store_true')
-        self.add_argument(*ConsoleArgumentParser.LOGGING_ARGUMENT)
+        self.add_argument(*ConsoleArgumentParser.DIRECTORY_POSITIONAL, **ConsoleArgumentParser.DIRECTORY_KEYWORD)
+        self.add_argument(*ConsoleArgumentParser.DATABASE_POSITIONAL, **ConsoleArgumentParser.DATABASE_KEYWORD)
+        self.add_argument(*ConsoleArgumentParser.VERBOSE_POSITIONAL, **ConsoleArgumentParser.VERBOSE_KEYWORD)
+        self.add_argument(*ConsoleArgumentParser.LOGGING_POSITIONAL, **ConsoleArgumentParser.LOGGING_KEYWORD)
 
 
 class MessageWriter:
@@ -51,6 +56,7 @@ class File:
 
 def main():
     """Doin' Stuff..."""
+    arguments, not_parsed = ConsoleArgumentParser().parse_known_args()
 
 
 if __name__ == '__main__':
