@@ -5,16 +5,24 @@ import logging
 from dataclasses import dataclass
 
 
-PROGRAM_NAME = 'Directory Profiler'
+PROGRAM_NAME = 'Directory Profiler'  # TODO here script name is required
 PROGRAM_DESCRIPTION = ''  # TODO write appropriate program description
 
 
 class ConsoleArgumentParser(ArgumentParser):
     """Console arguments handler based on argparse.ArgumentParser"""
 
+    DIRECTORY_ARGUMENT = ('-d', '--directory')
+    DATABASE_ARGUMENT = ('-b', '--database')
+    VERBOSE_ARGUMENT = ('-v', '--verbose')
+    LOGGING_ARGUMENT = ('-l', '--log')
+
     def __init__(self):
         super().__init__(prog=PROGRAM_NAME, description=PROGRAM_DESCRIPTION)
-        # TODO here add_argument will be summoned multiple times for configuration purposes
+        self.add_argument(*ConsoleArgumentParser.DIRECTORY_ARGUMENT)
+        self.add_argument(*ConsoleArgumentParser.DATABASE_ARGUMENT)
+        self.add_argument(*ConsoleArgumentParser.VERBOSE_ARGUMENT, action='store_true')
+        self.add_argument(*ConsoleArgumentParser.LOGGING_ARGUMENT)
 
 
 class MessageWriter:
