@@ -7,10 +7,7 @@ from dataclasses import dataclass
 import os
 import hashlib
 
-from utility import get_file_access_rights
-
-
-CHUNK_SIZE = 4096
+from utility import get_file_access_rights, calculate_file_sha256_hash
 
 
 @dataclass
@@ -94,15 +91,3 @@ def collect_file_data(file_path: str, directory: Directory) -> File:
     file_statistics = os.stat(file_path)
     return File(os.path.basename(file_path), file_statistics.st_mtime, get_file_access_rights(file_statistics.st_mode),
                 calculate_file_sha256_hash(file_path), directory)
-
-
-def calculate_file_sha256_hash(file_path: str) -> hashlib.sha256:
-    """Compute SHA256 hash of specified file content
-    :param file_path: Path to file for hash calculation
-    :return: SHA256 hash of file content
-    """
-    with open(file_path, 'rb') as file:
-        file_hash = hashlib.sha256()
-        while part := file.read(CHUNK_SIZE):
-            file_hash.update(part)
-        return file_hash

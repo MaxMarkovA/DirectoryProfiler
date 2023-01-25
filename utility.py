@@ -1,6 +1,10 @@
 # Max Markov 01.25.2023
 
+import hashlib
+
+
 OCTAL_XYZ_RIGHTS_SLICE_START = -3
+CHUNK_SIZE = 4096
 
 
 def get_file_access_rights(file_mode: int) -> str:
@@ -9,3 +13,18 @@ def get_file_access_rights(file_mode: int) -> str:
     :return: XYZ-format file access rights
     """
     return oct(file_mode)[OCTAL_XYZ_RIGHTS_SLICE_START:]
+
+
+def calculate_file_sha256_hash(file_path: str) -> hashlib.sha256:
+    """Compute SHA256 hash of specified file content
+    :param file_path: Path to file for hash calculation
+    :return: SHA256 hash of file content
+    """
+    try:
+        with open(file_path, 'rb') as file:
+            file_hash = hashlib.sha256()
+            while part := file.read(CHUNK_SIZE):
+                file_hash.update(part)
+            return file_hash
+    except PermissionError:
+        pass
