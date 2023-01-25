@@ -11,8 +11,8 @@ import hashlib
 
 
 PROGRAM_NAME = 'Directory Profiler'
-SCRIPT_NAME = ''  # TODO here script name is required
-PROGRAM_DESCRIPTION = ''  # TODO write an appropriate program description
+SCRIPT_NAME = 'directory_profiler.py'
+PROGRAM_DESCRIPTION = 'Gather information about directory & write it into database'
 
 SCRIPT_START_MESSAGE = f'{PROGRAM_NAME} has started operating'
 SCRIPT_FINAL_MESSAGE = f'{PROGRAM_NAME} has finished operating'
