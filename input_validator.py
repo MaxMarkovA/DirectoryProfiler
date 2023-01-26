@@ -62,7 +62,7 @@ def validate_input(arguments: Namespace, not_parsed: List[str]):
     messaging.messanger.send_message(ARGUMENTS_MESSAGE_TEMPLATE.format(vars(arguments)))
     if not_parsed:
         messaging.messanger.send_error(LEFTOVER_ERROR_MESSAGE_TEMPLATE.format(not_parsed))
-    if not os.path.exists(os.path.abspath(arguments.directory)):
+    if not os.path.exists(os.path.join(os.path.abspath(arguments.directory), arguments.directory)):
         raise DirectoryMissingError(arguments.directory)
     validate_file_for_writing(arguments.database)
     validate_file_for_writing(arguments.log)
