@@ -39,6 +39,8 @@ def create_file_if_possible(path: str):
     :param path: Path to desired file
     :raise: FileCanNotBeCreatedError
     """
+    if not os.path.isdir(os.path.dirname(os.path.abspath(path))):
+        raise FileCanNotBeCreatedError(path)
     try:
         open(path, 'x').close()
     except IOError:
