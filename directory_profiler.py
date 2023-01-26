@@ -5,6 +5,7 @@ import logging
 
 from input_validator import ConsoleArgumentParser
 from data_collector import handle_directory_file_system
+from database_manager import DatabaseManager
 
 
 PROGRAM_NAME = 'Directory Profiler'
@@ -49,8 +50,8 @@ def main():
     # TODO log mistakes with arguments
     # TODO check directory/file accessibility
     # TODO log paths to directories/files
-    for element in handle_directory_file_system('test_data/00'):
-        print(element)
+    database_writer = DatabaseManager('sample.db')
+    database_writer.insert_information_into_database(handle_directory_file_system('test_data/00'))
     writer.send_message(SCRIPT_FINAL_MESSAGE)
 
 

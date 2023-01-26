@@ -18,6 +18,6 @@ class File:
     """File-related collected information"""
     name: str
     last_modified: float
-    access_rules: str
+    access_rights: str
     content_hash: bytes
     directory: Directory
