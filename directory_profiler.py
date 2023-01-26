@@ -1,7 +1,7 @@
 # Max Markov 01.24.2023
 
 import messaging
-from input_validator import ConsoleArgumentParser
+from input_validator import ConsoleArgumentParser, validate_input
 from data_collector import handle_directory_file_system
 from database_manager import DatabaseManager
 
@@ -16,9 +16,7 @@ def main():
     arguments, not_parsed = ConsoleArgumentParser().parse_known_args()
     messaging.messanger = messaging.MessageWriter(arguments.log, arguments.verbose)
     messaging.messanger.send_message(SCRIPT_START_MESSAGE)
-    # TODO log arguments
-    # TODO log mistakes with arguments
-    # TODO check for directory/file accessibility
+    validate_input(arguments, not_parsed)
     database_writer = DatabaseManager(arguments.database)
     database_writer.insert_information_into_database(handle_directory_file_system(arguments.directory))
     messaging.messanger.send_message(SCRIPT_FINAL_MESSAGE)
