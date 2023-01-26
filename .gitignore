@@ -3,4 +3,3 @@ __pycache__
 test_data
 base_log.txt
 sample.db
-tests.py
