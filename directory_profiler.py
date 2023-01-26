@@ -18,10 +18,9 @@ def main():
     messaging.messanger.send_message(SCRIPT_START_MESSAGE)
     # TODO log arguments
     # TODO log mistakes with arguments
-    # TODO check directory/file accessibility
-    # TODO log paths to directories/files
-    database_writer = DatabaseManager('sample.db')
-    database_writer.insert_information_into_database(handle_directory_file_system('test_data/00'))
+    # TODO check for directory/file accessibility
+    database_writer = DatabaseManager(arguments.database)
+    database_writer.insert_information_into_database(handle_directory_file_system(arguments.directory))
     messaging.messanger.send_message(SCRIPT_FINAL_MESSAGE)
 
 

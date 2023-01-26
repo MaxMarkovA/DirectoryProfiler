@@ -3,8 +3,13 @@
 from typing import Union
 import os
 
+import messaging
 from utility import get_file_access_rights, calculate_file_sha256_hash
 from information_storage import Directory, File
+
+
+DIRECTORY_FOUND_MESSAGE_TEMPLATE = 'Found directory at: {}'
+FILE_FOUND_MESSAGE_TEMPLATE = 'Found file at: {}'
 
 
 def recursive_directory_walker(root_directory: str):
@@ -27,6 +32,7 @@ def handle_directory_file_system(path: str) -> list:
     :param path: Path to the processed file system element
     :return: Gathered information about directory elements
     """
+    path = os.path.abspath(path)  # IMPORTANT: this also makes path windows-styled
     collected_elements = []
     data = None
     element_generator = recursive_directory_walker(path)
@@ -40,15 +46,18 @@ def handle_directory_file_system(path: str) -> list:
     return collected_elements
 
 
-def apply_data_collector(path: str, parent: Directory) -> Union[File, Directory]:
+def apply_data_collector(path: str, parent: Directory) -> Union[Directory, File]:
     """Based on element path decide which collector to call
+    NOTE: This function also writes messages
     :param path: Path to current element
     :param parent: Parent directory for current element
     :return: Collected element data
     """
     if os.path.isdir(path):
+        messaging.messanger.send_message(DIRECTORY_FOUND_MESSAGE_TEMPLATE.format(path))
         return collect_directory_data(path, parent)
     if os.path.isfile(path):
+        messaging.messanger.send_message(FILE_FOUND_MESSAGE_TEMPLATE.format(path))
         return collect_file_data(path, parent)
 
 
