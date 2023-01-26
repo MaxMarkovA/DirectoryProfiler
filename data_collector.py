@@ -1,31 +1,10 @@
 # Max Markov 01.25.2023
 
-from __future__ import annotations
-from typing import Optional, Union
-from dataclasses import dataclass
-
+from typing import Union
 import os
-import hashlib
 
 from utility import get_file_access_rights, calculate_file_sha256_hash
-
-
-@dataclass
-class Directory:
-    """Directory-related collected information"""
-    name: str
-    parent: Optional[Directory]
-    database_id: Optional[int] = None
-
-
-@dataclass
-class File:
-    """File-related collected information"""
-    name: str
-    last_modified: float
-    access_rules: str
-    content_hash: hashlib.sha256
-    directory: Directory
+from information_storage import Directory, File
 
 
 def recursive_directory_walker(root_directory: str):
