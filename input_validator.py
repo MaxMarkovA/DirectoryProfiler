@@ -5,6 +5,7 @@ from argparse import Namespace, ArgumentParser
 from typing import List
 
 import messaging
+from utility import check_if_file_accessible, create_file_if_possible
 
 
 SCRIPT_NAME = 'directory_profiler.py'
@@ -28,22 +29,6 @@ class NotAFileError(Exception):
 
     def __init__(self, location: str):
         super().__init__(NotAFileError.MESSAGE.format(location))
-
-
-class FileCanNotBeAccessedError(Exception):
-    """Raised if database/log file can not be accessed"""
-    MESSAGE = "File at {} cannot be accessed."
-
-    def __init__(self, location: str):
-        super().__init__(FileCanNotBeAccessedError.MESSAGE.format(location))
-
-
-class FileCanNotBeCreatedError(Exception):
-    """Raised if database/log file can not be created"""
-    MESSAGE = "File at {} is missing and cannot be created."
-
-    def __init__(self, location: str):
-        super().__init__(FileCanNotBeCreatedError.MESSAGE.format(location))
 
 
 class ConsoleArgumentParser(ArgumentParser):
@@ -93,24 +78,3 @@ def validate_file_for_writing(path: str):
             check_if_file_accessible(path)
     else:
         create_file_if_possible(path)
-
-
-def check_if_file_accessible(path: str):
-    """Checks if information can be written inside the file
-    :param path: Path to file check is being applied to
-    :raise: FileCanNotBeAccessedError
-    """
-    if not os.access(path, os.W_OK):
-        raise FileCanNotBeAccessedError(path)
-
-
-def create_file_if_possible(path: str):
-    """Creates file if there is a possibility of doing that
-    NOTE: Assumes there is no such file in the first place
-    :param path: Path to desired file
-    :raise: FileCanNotBeCreatedError
-    """
-    try:
-        open(path, 'x').close()
-    except IOError:
-        raise FileCanNotBeCreatedError(path)
