@@ -1,6 +1,6 @@
 # Max Markov 01.25.2023
 
-from typing import Union
+from typing import Optional, Union
 import os
 
 import messaging
@@ -61,10 +61,10 @@ def apply_data_collector(path: str, parent: Directory) -> Union[Directory, File]
         return collect_file_data(path, parent)
 
 
-def collect_directory_data(directory_path: str, parent: Directory) -> Directory:
+def collect_directory_data(directory_path: str, parent: Optional[Directory]) -> Directory:
     """Gathers data about specified directory & creates Directory from it
     :param directory_path: Path to the file system element proven to be a directory
-    :param parent: Parent Directory
+    :param parent: Parent Directory optional
     :return: Directory object based on gathered data
     """
     return Directory(os.path.basename(directory_path), parent)
