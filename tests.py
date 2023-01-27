@@ -3,7 +3,7 @@
 import unittest
 import shutil
 import stat
-import hashlib
+import sqlite3
 
 from utility import *
 from information_storage import Directory, File
@@ -24,6 +24,15 @@ DEFAULT_SCRIPT_ARGUMENTS = ['-d', DEFAULT_STRUCTURE_ARGUMENT, '-b', DEFAULT_DATA
 ARGUMENTS_DIRECTORY_POSITION = 1
 ARGUMENTS_DATABASE_POSITION = 3
 ARGUMENTS_LOG_POSITION = 5
+
+DATABASE_READ_DIRECTORIES = 'SELECT * FROM directories'
+DATABASE_READ_FILES = 'SELECT * FROM files'
+DIRECTORY_RECORD_ID_INDEX = 0
+DIRECTORY_RECORD_PARENT_INDEX = 1
+DIRECTORY_RECORD_NAME_INDEX = 2
+FILE_RECORD_DIRECTORY_INDEX = 1
+FILE_RECORD_NAME_INDEX = 2
+
 
 
 class ArgumentValidationTestCase(unittest.TestCase):
@@ -66,6 +75,14 @@ class ArgumentValidationTestCase(unittest.TestCase):
         arguments, not_parsed = ConsoleArgumentParser().parse_known_args(args=self.script_arguments)
         self.assertRaises(FileCanNotBeCreatedError, validate_input, arguments, not_parsed)
 
+    def test_normal_arguments(self):
+        """Check if arguments are parsed correctly in some average scenario"""
+        arguments, not_parsed = ConsoleArgumentParser().parse_known_args(args=self.script_arguments)
+        manual_arguments = {'directory': DEFAULT_STRUCTURE_ARGUMENT, 'database': DEFAULT_DATABASE_ARGUMENT,
+                            'verbose': False, 'log': DEFAULT_LOG_FILE_ARGUMENT}
+        self.assertEqual(vars(arguments), manual_arguments)
+        self.assertFalse(not_parsed)
+
 
 class DataCollectorTestCase(unittest.TestCase):
     @classmethod
@@ -75,7 +92,7 @@ class DataCollectorTestCase(unittest.TestCase):
             shutil.rmtree(TEST_ROOT, onerror=cls.on_deletion_error)
 
     def setUp(self):
-        """Clears TEST_ROOT & resets script_arguments"""
+        """Clears TEST_ROOT"""
         if os.path.isdir(TEST_ROOT):
             shutil.rmtree(TEST_ROOT, onerror=DataCollectorTestCase.on_deletion_error)
         os.makedirs(DEFAULT_STRUCTURE_ARGUMENT)
@@ -147,6 +164,68 @@ class DataCollectorTestCase(unittest.TestCase):
         file3 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt', fifth)
         manual_data = [root, first, second, fourth, third, fifth, file0, file2, file1, file3]
         self.assertTrue(all(any(manual_element == element for element in data) for manual_element in manual_data))
+
+
+class DatabaseManagerTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """Clears TEST_ROOT & collects directory information"""
+        if os.path.isdir(TEST_ROOT):
+            shutil.rmtree(TEST_ROOT, onerror=DataCollectorTestCase.on_deletion_error)
+        os.makedirs(DEFAULT_STRUCTURE_ARGUMENT)
+        os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/first')
+        os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/third')
+        os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth')
+        DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file0.txt')
+        DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt')
+        DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt')
+        DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt')
+        os.chmod(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt', stat.S_IREAD)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Remove all file structures generated while testing"""
+        if os.path.isdir(TEST_ROOT):
+            shutil.rmtree(TEST_ROOT, onerror=cls.on_deletion_error)
+
+    def setUp(self):
+        """Gather information about directory"""
+        self.data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT)
+
+    @staticmethod
+    def on_deletion_error(action, name, exception):
+        os.chmod(name, stat.S_IRWXU)
+        os.remove(name)
+
+    @staticmethod
+    def create_missing_file(path):
+        with open(path, 'x'):
+            pass
+
+    def test_database_writing(self):
+        """Check if information is written correctly into the database"""
+        database_writer = DatabaseManager(DEFAULT_DATABASE_ARGUMENT)
+        database_writer.insert_information_into_database(self.data)
+        connection = sqlite3.connect(DEFAULT_DATABASE_ARGUMENT)
+        cursor = connection.cursor()
+        cursor.execute(DATABASE_READ_DIRECTORIES)
+        directories = cursor.fetchall()
+        cursor.execute(DATABASE_READ_FILES)
+        files = cursor.fetchall()
+        connection.close()
+        directory_parents = dict()
+        file_parents = dict()
+        directory_names = dict()
+        for directory_record in directories:
+            directory_parents[directory_record[DIRECTORY_RECORD_NAME_INDEX]] = \
+                directory_record[DIRECTORY_RECORD_PARENT_INDEX]
+            directory_names[directory_record[DIRECTORY_RECORD_ID_INDEX]] = directory_record[DIRECTORY_RECORD_NAME_INDEX]
+        for file_record in files:
+            file_parents[file_record[FILE_RECORD_NAME_INDEX]] = file_record[FILE_RECORD_DIRECTORY_INDEX]
+        self.assertTrue(all(directory_names[directory_parents[element.name]] == element.parent.name for element in
+                            self.data[1:] if isinstance(element, Directory)))  # ignoring root
+        self.assertTrue(all(directory_names[file_parents[element.name]] == element.directory.name for element in
+                            self.data if isinstance(element, File)))
 
 
 if __name__ == '__main__':
