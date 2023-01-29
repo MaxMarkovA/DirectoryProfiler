@@ -1,9 +1,12 @@
 # Max Markov 01.24.2023
 
+import os.path
 import unittest
 import shutil
 import stat
 import sqlite3
+from random import choices
+from string import ascii_lowercase
 
 from utility import *
 from information_storage import Directory, File
@@ -15,9 +18,9 @@ from database_manager import DatabaseManager
 TEST_ROOT = 'test_data'
 TEST_LOGGING = 'test_logging'
 
-DEFAULT_STRUCTURE_ARGUMENT = os.path.join(TEST_ROOT, 'structure')
-DEFAULT_DATABASE_ARGUMENT = os.path.join(TEST_ROOT, 'data.db')
-DEFAULT_LOG_FILE_ARGUMENT = os.path.join(TEST_ROOT, 'log.txt')
+DEFAULT_STRUCTURE_ARGUMENT = os.path.join(TEST_ROOT, 'structure')  # subdirectory for profiling
+DEFAULT_DATABASE_ARGUMENT = os.path.join(TEST_ROOT, 'data.db')  # database for storing results
+DEFAULT_LOG_FILE_ARGUMENT = os.path.join(TEST_ROOT, 'log.txt')  # test-log which is not tested
 
 DEFAULT_SCRIPT_ARGUMENTS = ['-d', DEFAULT_STRUCTURE_ARGUMENT, '-b', DEFAULT_DATABASE_ARGUMENT,
                             '-l', DEFAULT_LOG_FILE_ARGUMENT]
@@ -32,7 +35,6 @@ DIRECTORY_RECORD_PARENT_INDEX = 1
 DIRECTORY_RECORD_NAME_INDEX = 2
 FILE_RECORD_DIRECTORY_INDEX = 1
 FILE_RECORD_NAME_INDEX = 2
-
 
 
 class ArgumentValidationTestCase(unittest.TestCase):
@@ -51,6 +53,7 @@ class ArgumentValidationTestCase(unittest.TestCase):
 
     @staticmethod
     def on_deletion_error(action, name, exception):
+        """Perform access rights change for a read-only file & delete it"""
         os.chmod(name, stat.S_IRWXU)
         os.remove(name)
 
@@ -99,11 +102,13 @@ class DataCollectorTestCase(unittest.TestCase):
 
     @staticmethod
     def on_deletion_error(action, name, exception):
+        """Perform access rights change for a read-only file & delete it"""
         os.chmod(name, stat.S_IRWXU)
         os.remove(name)
 
     @staticmethod
     def create_missing_file(path):
+        """Create file which location is not occupied & specified by path"""
         with open(path, 'x'):
             pass
 
@@ -159,19 +164,64 @@ class DataCollectorTestCase(unittest.TestCase):
         third = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/third', second)
         fifth = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth', fourth)
         file0 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file0.txt', first)
-        file2 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt', first)
         file1 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt', second)
+        file2 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt', first)
         file3 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt', fifth)
         manual_data = [root, first, second, fourth, third, fifth, file0, file2, file1, file3]
         self.assertTrue(all(any(manual_element == element for element in data) for manual_element in manual_data))
 
 
+class UtilityTestCase(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        """Remove all file structures generated while testing"""
+        if os.path.isdir(TEST_ROOT):
+            shutil.rmtree(TEST_ROOT, onerror=cls.on_deletion_error)
+
+    def setUp(self):
+        """Clears TEST_ROOT"""
+        if os.path.isdir(TEST_ROOT):
+            shutil.rmtree(TEST_ROOT, onerror=UtilityTestCase.on_deletion_error)
+        os.makedirs(TEST_ROOT)
+
+    @staticmethod
+    def on_deletion_error(action, name, exception):
+        """Perform access rights change for a read-only file & delete it"""
+        os.chmod(name, stat.S_IRWXU)
+        os.remove(name)
+
+    @staticmethod
+    def create_and_fill_file(path, content):
+        """Create file at specified location & fill it with text content"""
+        with open(path, 'wb') as file:
+            file.write(content)
+
+    @staticmethod
+    def generate_random_string(length):
+        """Creates randomly composed string from ASCII lowercase characters"""
+        return ''.join(choices(ascii_lowercase, k=length))
+
+    def test_normal_file_hash_calculation(self):
+        """Calculate hash for a file with read permission"""
+        test_file = f'{TEST_ROOT}/test_file.txt'
+        file_content = 'test file content repeat: test file content'.encode('utf-8')
+        UtilityTestCase.create_and_fill_file(test_file, file_content)
+        self.assertEqual(calculate_file_sha256_hash(test_file), hashlib.sha256(file_content).digest())
+
+    def test_huge_file_hash_calculation(self):
+        """Calculate hash for a file with not-single-chunked content"""
+        test_file = f'{TEST_ROOT}/test_file.txt'
+        file_content = UtilityTestCase.generate_random_string(10000).encode('utf-8')
+        UtilityTestCase.create_and_fill_file(test_file, file_content)
+        self.assertEqual(calculate_file_sha256_hash(test_file), hashlib.sha256(file_content).digest())
+
+
 class DatabaseManagerTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        """Clears TEST_ROOT & collects directory information"""
+        """Clears TEST_ROOT & sets up directory file system"""
         if os.path.isdir(TEST_ROOT):
-            shutil.rmtree(TEST_ROOT, onerror=DataCollectorTestCase.on_deletion_error)
+            shutil.rmtree(TEST_ROOT, onerror=DatabaseManagerTestCase.on_deletion_error)
         os.makedirs(DEFAULT_STRUCTURE_ARGUMENT)
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/first')
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/third')
@@ -180,7 +230,7 @@ class DatabaseManagerTestCase(unittest.TestCase):
         DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt')
         DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt')
         DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt')
-        os.chmod(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt', stat.S_IREAD)
+        os.chmod(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt', stat.S_IREAD)  # this does not cause PermissionError
 
     @classmethod
     def tearDownClass(cls):
@@ -194,11 +244,13 @@ class DatabaseManagerTestCase(unittest.TestCase):
 
     @staticmethod
     def on_deletion_error(action, name, exception):
+        """Perform access rights change for a read-only file & delete it"""
         os.chmod(name, stat.S_IRWXU)
         os.remove(name)
 
     @staticmethod
     def create_missing_file(path):
+        """Create file which location is not occupied & specified by path"""
         with open(path, 'x'):
             pass
 
