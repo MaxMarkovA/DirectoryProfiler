@@ -22,9 +22,12 @@ def recursive_directory_walker(root_directory: str):
         current_path, parent_directory = recursion_stack.pop(0)
         current_data = yield current_path, parent_directory
         if isinstance(current_data, Directory):
-            for component in os.listdir(current_path):
-                component = os.path.join(current_path, component)
-                recursion_stack.append((component, current_data))
+            try:
+                for component in os.listdir(current_path):
+                    component = os.path.join(current_path, component)
+                    recursion_stack.append((component, current_data))
+            except PermissionError:
+                pass
 
 
 def handle_directory_file_system(path: str) -> list:
