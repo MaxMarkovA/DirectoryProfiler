@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS directories (
     FOREIGN KEY(parent_id) REFERENCES directories(id)
 );
 '''
-DIRECTORY_INSERT_COMMAND = 'INSERT INTO directories(id, parent_id, name) VALUES(?, ?, ?)'
+DIRECTORY_INSERT_COMMAND = 'INSERT OR REPLACE INTO directories(id, parent_id, name) VALUES(?, ?, ?)'
 
 FILES_TABLE_CREATION = '''
 CREATE TABLE IF NOT EXISTS files (
@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS files (
 );
 '''
 FILE_INSERT_COMMAND = '''
-INSERT INTO files(id, directory, name, last_modification, access_rights, content_hash) VALUES(?, ?, ?, ?, ?, ?)
+INSERT OR REPLACE 
+INTO files(id, directory, name, last_modification, access_rights, content_hash) 
+VALUES(?, ?, ?, ?, ?, ?)
 '''
 
 
@@ -55,10 +57,11 @@ class DatabaseManager:
         :param element: Directory/File object to be written
         """
         if isinstance(element, Directory):
-            if element.parent is None:
-                self.cursor.execute(DIRECTORY_INSERT_COMMAND, (element.id, None, element.name))
-            else:
-                self.cursor.execute(DIRECTORY_INSERT_COMMAND, (element.id, element.parent.id, element.name))
+            if element.id != 0:  # TODO this is caused by PermissionError
+                if element.parent is None:
+                    self.cursor.execute(DIRECTORY_INSERT_COMMAND, (element.id, None, element.name))
+                else:
+                    self.cursor.execute(DIRECTORY_INSERT_COMMAND, (element.id, element.parent.id, element.name))
         elif isinstance(element, File):
             if element.content_hash is not None:  # TODO this check is needed because of PermissionError occurrence
                 self.cursor.execute(FILE_INSERT_COMMAND,
