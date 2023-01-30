@@ -113,7 +113,7 @@ class DataCollectorTestCase(unittest.TestCase):
             pass
 
     def test_handle_file_system_first(self):
-        """Check if correct data collected form first directory configuration"""
+        """Check if correct data collected from first directory configuration"""
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/second')
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/third')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file0.txt')
@@ -128,12 +128,11 @@ class DataCollectorTestCase(unittest.TestCase):
         self.assertTrue(all(isinstance(element, Directory) or isinstance(element, File) for element in data))
 
     def test_handle_file_system_second(self):
-        """Check if correct data collected form second directory configuration"""
+        """Check if correct data collected from second directory configuration"""
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/first/second/third')
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/second')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file0.txt')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/file1.txt')
-        os.chmod(f'{DEFAULT_STRUCTURE_ARGUMENT}/file1.txt', stat.S_IREAD)
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/first/second/file2.txt')
         data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT)
         self.assertEqual(len(data), 9)  # root, first, first, second, second, third, file0.txt, file1.txt, file2.txt
@@ -147,7 +146,7 @@ class DataCollectorTestCase(unittest.TestCase):
         self.assertTrue(all(isinstance(element, Directory) or isinstance(element, File) for element in data))
 
     def test_handle_file_system_third(self):
-        """Check if correct data collected form third directory configuration"""
+        """Check if correct data collected from third directory configuration"""
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/first')
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/third/')
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth')
@@ -155,7 +154,6 @@ class DataCollectorTestCase(unittest.TestCase):
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt')
-        os.chmod(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt', stat.S_IREAD)
         data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT)
         root = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}', None)
         first = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first', root)
@@ -168,7 +166,9 @@ class DataCollectorTestCase(unittest.TestCase):
         file2 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt', first)
         file3 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt', fifth)
         manual_data = [root, first, second, fourth, third, fifth, file0, file2, file1, file3]
+        self.assertEqual(len(data), len(manual_data))
         self.assertTrue(all(any(manual_element == element for element in data) for manual_element in manual_data))
+        self.assertTrue(all(any(element == manual_element for manual_element in manual_data) for element in data))
 
 
 class UtilityTestCase(unittest.TestCase):
@@ -230,7 +230,6 @@ class DatabaseManagerTestCase(unittest.TestCase):
         DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt')
         DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt')
         DatabaseManagerTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt')
-        os.chmod(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt', stat.S_IREAD)  # this does not cause PermissionError
 
     @classmethod
     def tearDownClass(cls):
