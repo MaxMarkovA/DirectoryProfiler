@@ -8,17 +8,17 @@ from information_storage import Directory, File
 
 DIRECTORIES_TABLE_CREATION = '''
 CREATE TABLE IF NOT EXISTS directories (
-    id integer PRIMARY KEY AUTOINCREMENT,
+    id integer PRIMARY KEY,
     parent_id integer,
     name text NOT NULL,
     FOREIGN KEY(parent_id) REFERENCES directories(id)
 );
 '''
-DIRECTORY_INSERT_COMMAND = 'INSERT INTO directories(parent_id, name) VALUES(?, ?)'
+DIRECTORY_INSERT_COMMAND = 'INSERT INTO directories(id, parent_id, name) VALUES(?, ?, ?)'
 
 FILES_TABLE_CREATION = '''
 CREATE TABLE IF NOT EXISTS files (
-    id integer PRIMARY KEY AUTOINCREMENT,
+    id integer PRIMARY KEY,
     directory integer NOT NULL,
     name text NOT NULL,
     last_modification timestamp NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS files (
 );
 '''
 FILE_INSERT_COMMAND = '''
-INSERT INTO files(directory, name, last_modification, access_rights, content_hash) VALUES(?, ?, ?, ?, ?)
+INSERT INTO files(id, directory, name, last_modification, access_rights, content_hash) VALUES(?, ?, ?, ?, ?, ?)
 '''
 
 
@@ -56,12 +56,11 @@ class DatabaseManager:
         """
         if isinstance(element, Directory):
             if element.parent is None:
-                self.cursor.execute(DIRECTORY_INSERT_COMMAND, (None, element.name))
+                self.cursor.execute(DIRECTORY_INSERT_COMMAND, (element.id, None, element.name))
             else:
-                self.cursor.execute(DIRECTORY_INSERT_COMMAND, (element.parent.database_id, element.name))
-            element.database_id = self.cursor.lastrowid
+                self.cursor.execute(DIRECTORY_INSERT_COMMAND, (element.id, element.parent.id, element.name))
         elif isinstance(element, File):
             if element.content_hash is not None:  # TODO this check is needed because of PermissionError occurrence
                 self.cursor.execute(FILE_INSERT_COMMAND,
-                                    (element.directory.database_id, element.name, element.last_modified,
+                                    (element.id, element.directory.id, element.name, element.last_modified,
                                      element.access_rights, element.content_hash))

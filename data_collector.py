@@ -70,7 +70,7 @@ def collect_directory_data(directory_path: str, parent: Optional[Directory]) -> 
     :param parent: Parent Directory optional
     :return: Directory object based on gathered data
     """
-    return Directory(os.path.basename(directory_path), parent)
+    return Directory(os.stat(directory_path).st_ino, os.path.basename(directory_path), parent)
 
 
 def collect_file_data(file_path: str, directory: Directory) -> File:
@@ -80,5 +80,5 @@ def collect_file_data(file_path: str, directory: Directory) -> File:
     :return: File object based on gathered data
     """
     file_statistics = os.stat(file_path)
-    return File(os.path.basename(file_path), file_statistics.st_mtime, get_file_access_rights(file_statistics.st_mode),
-                calculate_file_sha256_hash(file_path), directory)
+    return File(file_statistics.st_ino, os.path.basename(file_path), file_statistics.st_mtime,
+                get_file_access_rights(file_statistics.st_mode), calculate_file_sha256_hash(file_path), directory)

@@ -8,14 +8,15 @@ from dataclasses import dataclass
 @dataclass
 class Directory:
     """Directory-related collected information"""
+    id: int
     name: str
     parent: Optional[Directory]
-    database_id: Optional[int] = None
 
 
 @dataclass
 class File:
     """File-related collected information"""
+    id: int
     name: str
     last_modified: float
     access_rights: str
