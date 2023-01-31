@@ -17,8 +17,9 @@ def main():
     messaging.messanger = messaging.MessageWriter(arguments.log, arguments.verbose)
     messaging.messanger.send_message(SCRIPT_START_MESSAGE)
     validate_input(arguments, not_parsed)
-    database_writer = DatabaseManager(arguments.database)
-    database_writer.insert_information_into_database(handle_directory_file_system(arguments.directory))
+    database_access = DatabaseManager(arguments.database)
+    data = handle_directory_file_system(arguments.directory, database_access)
+    database_access.insert_information_into_database(data)
     messaging.messanger.send_message(SCRIPT_FINAL_MESSAGE)
 
 

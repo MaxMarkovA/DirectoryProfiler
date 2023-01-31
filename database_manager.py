@@ -1,7 +1,7 @@
 # Max Markov 01.26.2023
 
 import sqlite3
-from typing import List, Union
+from typing import List, Optional, Union
 
 from information_storage import Directory, File
 
@@ -27,11 +27,16 @@ CREATE TABLE IF NOT EXISTS files (
     FOREIGN KEY (directory) REFERENCES directories(id)
 );
 '''
+FILE_GET_COMMAND = '''
+SELECT * FROM files WHERE id = ?
+'''
 FILE_INSERT_COMMAND = '''
 INSERT OR REPLACE 
 INTO files(id, directory, name, last_modification, access_rights, content_hash) 
 VALUES(?, ?, ?, ?, ?, ?)
 '''
+FILE_RECORD_LAST_MODIFICATION_INDEX = 3
+FILE_RECORD_CONTENT_HASH_INDEX = 5
 
 
 class DatabaseManager:
@@ -51,6 +56,19 @@ class DatabaseManager:
         for element in data:
             self.insert_element_into_database(element)
         self.connection.commit()
+
+    def get_file_information_from_database(self, element_id: int) -> Optional[tuple]:
+        """Get element information from database
+        :param element_id: ID of the desired element
+        :return: Last modification date & content hash
+        """
+        try:
+            record = self.cursor.execute(FILE_GET_COMMAND, (element_id, )).fetchone()
+            if record is not None:
+                return record[FILE_RECORD_LAST_MODIFICATION_INDEX], record[FILE_RECORD_CONTENT_HASH_INDEX]
+            return None
+        except sqlite3.OperationalError:
+            return None
 
     def insert_element_into_database(self, element: Union[Directory, List]):
         """Write single file system element into database
