@@ -1,7 +1,6 @@
 # Max Markov 01.24.2023
 
 import os.path
-import sys
 import unittest
 import shutil
 import stat
@@ -100,6 +99,7 @@ class DataCollectorTestCase(unittest.TestCase):
         if os.path.isdir(TEST_ROOT):
             shutil.rmtree(TEST_ROOT, onerror=DataCollectorTestCase.on_deletion_error)
         os.makedirs(DEFAULT_STRUCTURE_ARGUMENT)
+        self.database_access = DatabaseManager(DEFAULT_DATABASE_ARGUMENT)
 
     @staticmethod
     def on_deletion_error(action, name, exception):
@@ -119,7 +119,7 @@ class DataCollectorTestCase(unittest.TestCase):
         os.makedirs(f'{DEFAULT_STRUCTURE_ARGUMENT}/third')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file0.txt')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/third/file1.txt')
-        data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT)
+        data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT, self.database_access)
         self.assertEqual(len(data), 6)  # root, first, second, third, file0.txt, file1.txt
         self.assertIn('file0.txt', (element.name for element in data))
         self.assertIsInstance(data[0], Directory)  # root directory
@@ -135,7 +135,7 @@ class DataCollectorTestCase(unittest.TestCase):
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file0.txt')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/file1.txt')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/first/second/file2.txt')
-        data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT)
+        data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT, self.database_access)
         self.assertEqual(len(data), 9)  # root, first, first, second, second, third, file0.txt, file1.txt, file2.txt
         self.assertNotIn('file3.txt', (element.name for element in data))
         self.assertIn('file2.txt', (element.name for element in data))
@@ -155,17 +155,17 @@ class DataCollectorTestCase(unittest.TestCase):
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt')
         DataCollectorTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt')
-        data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT)
+        data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT, self.database_access)
         root = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}', None)
         first = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first', root)
         second = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/second', root)
         fourth = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth', root)
         third = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/third', second)
         fifth = collect_directory_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth', fourth)
-        file0 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file0.txt', first)
-        file1 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt', second)
-        file2 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt', first)
-        file3 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt', fifth)
+        file0 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file0.txt', first, self.database_access)
+        file1 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/second/file1.txt', second, self.database_access)
+        file2 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/first/file2.txt', first, self.database_access)
+        file3 = collect_file_data(f'{DEFAULT_STRUCTURE_ARGUMENT}/fourth/fifth/file3.txt', fifth, self.database_access)
         manual_data = [root, first, second, fourth, third, fifth, file0, file2, file1, file3]
         self.assertEqual(len(data), len(manual_data))
         self.assertTrue(all(any(manual_element == element for element in data) for manual_element in manual_data))
@@ -240,7 +240,8 @@ class DatabaseManagerTestCase(unittest.TestCase):
 
     def setUp(self):
         """Gather information about directory"""
-        self.data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT)
+        self.database_access = DatabaseManager(DEFAULT_DATABASE_ARGUMENT)
+        self.data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT, self.database_access)
 
     @staticmethod
     def on_deletion_error(action, name, exception):
@@ -256,8 +257,7 @@ class DatabaseManagerTestCase(unittest.TestCase):
 
     def test_database_writing(self):
         """Check if information is written correctly into the database"""
-        database_writer = DatabaseManager(DEFAULT_DATABASE_ARGUMENT)
-        database_writer.insert_information_into_database(self.data)
+        self.database_access.insert_information_into_database(self.data)
         connection = sqlite3.connect(DEFAULT_DATABASE_ARGUMENT)
         cursor = connection.cursor()
         cursor.execute(DATABASE_READ_DIRECTORIES)
