@@ -1,7 +1,8 @@
 # Max Markov 01.24.2023
 
-import os.path
 import unittest
+from unittest.mock import patch
+import os.path
 import shutil
 import stat
 import sqlite3
@@ -10,6 +11,7 @@ from string import ascii_lowercase
 
 from utility import *
 from information_storage import Directory, File
+import data_collector
 from data_collector import handle_directory_file_system, collect_directory_data, collect_file_data
 from input_validator import *
 from database_manager import DatabaseManager
@@ -170,6 +172,63 @@ class DataCollectorTestCase(unittest.TestCase):
         self.assertEqual(len(data), len(manual_data))
         self.assertTrue(all(any(manual_element == element for element in data) for manual_element in manual_data))
         self.assertTrue(all(any(element == manual_element for manual_element in manual_data) for element in data))
+
+
+class HashOptimizationTestCase(unittest.TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        """Remove all file structures generated while testing"""
+        if os.path.isdir(TEST_ROOT):
+            shutil.rmtree(TEST_ROOT, onerror=cls.on_deletion_error)
+
+    def setUp(self):
+        """Clears TEST_ROOT; creates DatabaseManager; patches hash calculation function"""
+        if os.path.isdir(TEST_ROOT):
+            shutil.rmtree(TEST_ROOT, onerror=DataCollectorTestCase.on_deletion_error)
+        os.makedirs(DEFAULT_STRUCTURE_ARGUMENT)
+        self.database_access = DatabaseManager(DEFAULT_DATABASE_ARGUMENT)
+        self.patcher = patch('data_collector.calculate_file_sha256_hash', return_value='fake hash')
+        self.patch_object = self.patcher.start()
+
+    def tearDown(self):
+        """Stops patcher for hash calculation function"""
+        self.patcher.stop()
+
+    @staticmethod
+    def on_deletion_error(action, name, exception):
+        """Perform access rights change for a read-only file & delete it"""
+        os.chmod(name, stat.S_IRWXU)
+        os.remove(name)
+
+    @staticmethod
+    def create_missing_file(path):
+        """Create file which location is not occupied & specified by path"""
+        with open(path, 'x'):
+            pass
+
+    @staticmethod
+    def change_file_content(path):
+        """Append some text to file so modification date would change"""
+        with open(path, 'a') as file:
+            file.write('some text')
+
+    def test_hash_calculated_only_once_for_unchanged_file(self):
+        """Check if hash calculation is optimized for file encountered twice unchanged"""
+        HashOptimizationTestCase.create_missing_file(f'{DEFAULT_STRUCTURE_ARGUMENT}/file.txt')
+        data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT, self.database_access)
+        self.database_access.insert_information_into_database(data)
+        handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT, self.database_access)
+        self.patch_object.assert_called_once()
+
+    def test_hash_calculated_twice_for_changed_file(self):
+        """Check if hash calculation is used twice for file which was changed"""
+        test_file = f'{DEFAULT_STRUCTURE_ARGUMENT}/file.txt'
+        HashOptimizationTestCase.create_missing_file(test_file)
+        data = handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT, self.database_access)
+        self.database_access.insert_information_into_database(data)
+        HashOptimizationTestCase.change_file_content(test_file)
+        handle_directory_file_system(DEFAULT_STRUCTURE_ARGUMENT, self.database_access)
+        self.assertEqual(self.patch_object.call_count, 2)
 
 
 class UtilityTestCase(unittest.TestCase):
